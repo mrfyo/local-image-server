@@ -2,6 +2,8 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -22,16 +24,48 @@ func InitHandler(router *gin.Engine) {
 	router.LoadHTMLGlob("templates/*")
 	router.MaxMultipartMemory = 8 << 20
 
-	router.GET("/image", ImageUpdatePage)
-	router.POST("/image/upload", ImageUploadHandler)
+	router.GET("/image", ImageHomePage)
+	router.GET("/image/list", ListUploadedImage)
+	router.POST("/image/upload", UploadImage)
 }
 
-func ImageUpdatePage(c *gin.Context) {
+func ImageHomePage(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", gin.H{})
 
 }
 
-func ImageUploadHandler(c *gin.Context) {
+func ListUploadedImage(c *gin.Context) {
+	fs, err := os.ReadDir(baseDir)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    1,
+			"message": "base directory is not exist",
+		})
+		return
+	}
+
+	// 按修改时间倒序
+	sort.Slice(fs, func(i, j int) bool {
+		a, _ := fs[i].Info()
+		b, _ := fs[j].Info()
+		return a.ModTime().After(b.ModTime())
+	})
+
+	var filenames []string
+	for i := 0; i < 5 && i < len(fs); i++ {
+		filenames = append(filenames, fs[i].Name())
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"data": gin.H{
+			"filenames": filenames,
+		},
+	})
+
+}
+
+func UploadImage(c *gin.Context) {
 
 	file, _ := c.FormFile("file")
 

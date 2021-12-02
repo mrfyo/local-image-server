@@ -11,13 +11,13 @@
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
     <!-- 引入组件库 -->
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
-
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
 
 <body>
     <div id="app">
-        <el-upload class="upload-demo" action="image/upload"
-            :file-list="fileList" list-type="picture" :on-success="handleOnSuccess" :on-preview="handleOnPreview">
+        <el-upload class="upload-demo" action="image/upload" :file-list="fileList" list-type="picture"
+            :on-success="handleOnSuccess" :on-preview="handleOnPreview">
             <el-button size="small" type="primary">点击上传</el-button>
             <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
         </el-upload>
@@ -29,10 +29,37 @@
             el: "#app",
             data() {
                 return {
-                    fileList: [{ name: 'food.jpeg', url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100' }, { name: 'food2.jpeg', url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100' }]
+                    host: "http://127.0.0.1",
+                    fileList: []
                 };
             },
+            created() {
+                this.fetchImageList()
+            },
             methods: {
+
+                fetchImageList() {
+                    axios.get("image/list").then((response) => {
+                        const result = response.data
+                        if(result.code !== 0) {
+                            this.$message.error(result.message)
+                            return
+                        }
+
+                        const filenames = result.data.filenames
+                        console.log(filenames);
+                        const fileList = []
+                        for(filename of filenames) {
+                            const url = this.host + "/image/" + filename
+                            fileList.push({
+                                name: filename,
+                                url: url,
+                            })
+                        }
+                        this.fileList = fileList
+                    })
+                },
+
                 handleOnSuccess(response, file, fileList) {
                     console.log(file);
                     console.log(response);
@@ -41,12 +68,19 @@
                     }
                 },
                 handleOnPreview(file) {
-                    navigator.clipboard.writeText(file.name)
+                    navigator.clipboard.writeText(this.generateImageURL(file.name))
                     this.$message.success("复制成功")
+                },
+
+                generateImageURL(filename) {
+                    return this.host + "/image/" + filename
                 }
             }
         })
     </script>
+
+
+    
 </body>
 
 </html>
