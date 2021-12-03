@@ -35,6 +35,16 @@ func ImageHomePage(c *gin.Context) {
 }
 
 func ListUploadedImage(c *gin.Context) {
+
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "3"))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    1,
+			"message": "param error -> limit",
+		})
+		return
+	}
+
 	fs, err := os.ReadDir(baseDir)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -52,7 +62,7 @@ func ListUploadedImage(c *gin.Context) {
 	})
 
 	var filenames []string
-	for i := 0; i < 5 && i < len(fs); i++ {
+	for i := 0; i < limit && i < len(fs); i++ {
 		filenames = append(filenames, fs[i].Name())
 	}
 
