@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var baseDir = "D:\\reasoures\\image"
+var baseDir = "D:\\reasoures\\image\\"
 
 func main() {
 	router := gin.Default()
@@ -26,6 +26,7 @@ func InitHandler(router *gin.Engine) {
 
 	router.GET("/image", ImageHomePage)
 	router.GET("/image/list", ListUploadedImage)
+	router.DELETE("/image/:filename", RemoveImage)
 	router.POST("/image/upload", UploadImage)
 }
 
@@ -81,7 +82,7 @@ func UploadImage(c *gin.Context) {
 
 	filename := strconv.FormatInt(time.Now().UTC().UnixMilli(), 10) + "." + GetFileType(file.Filename)
 
-	filepath := baseDir + "\\" + filename
+	filepath := baseDir + filename
 
 	c.SaveUploadedFile(file, filepath)
 
@@ -90,6 +91,22 @@ func UploadImage(c *gin.Context) {
 		"data": gin.H{
 			"filename": filename,
 		},
+	})
+}
+
+
+func RemoveImage(c *gin.Context) {
+	filename := c.Param("filename")
+	filepath := baseDir + filename
+	if err := os.Remove(filepath); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    1,
+			"message": "file not exists",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
 	})
 }
 

@@ -16,9 +16,9 @@
 
 <body>
     <div id="app">
-        
+
         <el-upload class="upload-demo" action="image/upload" :file-list="fileList" list-type="picture"
-            :on-success="handleOnSuccess" :on-preview="handleOnPreview">
+            :on-success="handleOnSuccess" :on-preview="handleOnPreview" :on-remove="handleOnRemove" :before-upload="handleBeforeUpload">
             <el-button size="small" type="primary">点击上传</el-button>
             <el-button size="small" type="primary" @click.stop="handleClipboardUpload">剪切板上传</el-button>
             <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
@@ -43,14 +43,14 @@
                 fetchImageList() {
                     axios.get("image/list").then((response) => {
                         const result = response.data
-                        if(result.code !== 0) {
+                        if (result.code !== 0) {
                             this.$message.error(result.message)
                             return
                         }
 
                         const filenames = result.data.filenames
                         const fileList = []
-                        for(filename of filenames) {
+                        for (filename of filenames) {
                             const url = this.host + "/image/" + filename
                             fileList.push({
                                 name: filename,
@@ -59,6 +59,10 @@
                         }
                         this.fileList = fileList
                     })
+                },
+
+                handleBeforeUpload(file) {
+                    console.log(file);
                 },
 
                 handleOnSuccess(response, file, fileList) {
@@ -71,19 +75,62 @@
                     this.$message.success("复制成功")
                 },
 
+                handleOnRemove(file, fileList) {
+                    const url = `image/${file.name}`
+                    axios.delete(url).then((resp) => {
+                        const result = resp.data
+                        if(result.code === 0) {
+                            this.$message.success("Remove OK")
+                            this.fetchImageList()
+                        }else {
+                            this.$message.error(result.message)
+                        }
+                    }).catch(err => {
+                        this.$message.error(err)
+                    })
+                },
+
                 generateImageURL(filename) {
                     return this.host + "/image/" + filename
                 },
 
-                handleClipboardUpload() {
-                    console.log("clipboard");
+                async handleClipboardUpload() {
+                    const items = await navigator.clipboard.read()
+                    for (const item of items) {
+                        for (const type of item.types) {
+                            if (type.startsWith("image")) {
+                                const blob = await item.getType(type)
+                                const file = new File([blob], type.replace("image/", "clipboard."), { type: type })
+                                console.log(file);
+
+                                let param = new FormData()
+                                param.append('file', file)
+                                let config = {
+                                    headers: { 'Content-Type': 'multipart/form-data' }
+                                }
+                                const response = await axios.post("image/upload", param, config)
+                                const result = response.data
+                                if (result.code === 0) {
+                                    const filename = result.data.filename
+                                    const url = this.host + "/image/" + filename
+                                    this.fileList.push({
+                                        name: filename,
+                                        url: url,
+                                    })
+                                }else{
+                                    this.$message.error(result.message)
+                                }
+
+                            }
+                        }
+                    }
                 }
             }
         })
     </script>
 
 
-    
+
 </body>
 
 </html>
